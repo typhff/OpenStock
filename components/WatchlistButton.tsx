@@ -27,8 +27,14 @@ const WatchlistButton = ({ symbol, company, isInWatchlist, variant = "button", o
         setAdded(next); // optimistic
         setLoading(true);
         try {
-            if (next) await addToWatchlist(symbol, company);
-            else await removeFromWatchlist(symbol);
+            if (next) {
+                const result = await addToWatchlist(symbol, company);
+                if (result && 'error' in result) {
+                    setAdded(false);
+                    toast.error(result.error);
+                    return;
+                }
+            } else await removeFromWatchlist(symbol);
             toast.success(next ? `${symbol} added to watchlist` : `${symbol} removed from watchlist`);
             onWatchlistChange?.(symbol, next);
             router.refresh(); // sidebar lists the watchlist from the layout

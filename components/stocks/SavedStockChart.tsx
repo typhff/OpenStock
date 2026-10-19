@@ -28,7 +28,7 @@ function isChartSettings(value: unknown): value is ChartSettings {
         && STYLES.some(([style]) => style === settings.style);
 }
 
-export default function SavedStockChart({ symbol }: { symbol: string }) {
+export default function SavedStockChart({ symbol, scriptUrl, studies }: { symbol: string; scriptUrl: string; studies: string[] }) {
     const [settings, setSettings] = useState<ChartSettings | null>(null);
 
     useEffect(() => {
@@ -78,8 +78,8 @@ export default function SavedStockChart({ symbol }: { symbol: string }) {
                 <span className="ml-auto">Use these controls to save changes · TradingView toolbar changes are temporary</span>
             </div>
             <TradingViewWidget
-                scriptUrl="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js"
-                config={{ ...CANDLE_CHART_WIDGET_CONFIG(symbol), ...settings }}
+                scriptUrl={scriptUrl}
+                config={{ ...CANDLE_CHART_WIDGET_CONFIG(symbol), ...settings, studies }}
                 height={560}
                 allowExpand
             />
