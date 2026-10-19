@@ -140,7 +140,7 @@ export const CANDLE_CHART_WIDGET_CONFIG = (symbol: string) => ({
     hide_legend: false,
     hide_volume: false,
     hotlist: false,
-    interval: 'D',
+    interval: '5',
     locale: 'en',
     save_image: false,
     style: 1,
