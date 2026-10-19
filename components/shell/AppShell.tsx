@@ -9,13 +9,14 @@ import { cn } from "@/lib/utils";
 import UpdateBanner from "@/components/UpdateBanner";
 
 type AppShellProps = {
+    singleUser?: boolean;
     user: User;
     watchlist: { symbol: string; company: string }[];
     initialStocks: StockWithWatchlistStatus[];
     children: React.ReactNode;
 };
 
-const AppShell = ({ user, watchlist, initialStocks, children }: AppShellProps) => {
+const AppShell = ({ user, watchlist, initialStocks, children, singleUser }: AppShellProps) => {
     const pathname = usePathname();
     const [navOpen, setNavOpen] = useState(false);
     const workspaceRef = useRef<HTMLElement>(null);
@@ -34,7 +35,7 @@ const AppShell = ({ user, watchlist, initialStocks, children }: AppShellProps) =
                     navOpen ? 'max-lg:translate-x-0' : 'max-lg:-translate-x-full',
                 )}
             >
-                <Sidebar user={user} watchlist={watchlist} />
+                <Sidebar user={user} watchlist={watchlist} singleUser={singleUser} />
             </div>
             {navOpen && (
                 <div className="fixed inset-0 z-40 bg-page/60 backdrop-blur-[2px] lg:hidden" onClick={() => setNavOpen(false)} />

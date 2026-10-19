@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { SIDEBAR_SPONSOR_SLOTS, sidebarSponsors } from "@/lib/sponsors";
 
 type SidebarProps = {
+    singleUser?: boolean;
     user: User;
     watchlist: { symbol: string; company: string }[];
 };
@@ -21,7 +22,7 @@ const RESOURCES = [
     { href: '/terms', label: 'Terms', icon: BookOpen },
 ];
 
-const Sidebar = ({ user, watchlist }: SidebarProps) => {
+const Sidebar = ({ user, watchlist, singleUser }: SidebarProps) => {
     const pathname = usePathname();
     const router = useRouter();
     const partners = sidebarSponsors();
@@ -119,9 +120,9 @@ const Sidebar = ({ user, watchlist }: SidebarProps) => {
                         <span className="block truncate text-[12px] text-faint">{user.email}</span>
                     </span>
                 </Link>
-                <button type="button" onClick={handleSignOut} className="icon-btn" title="Sign out" aria-label="Sign out">
+                {singleUser ? <a href="/cdn-cgi/access/logout" className="icon-btn" title="Sign out" aria-label="Sign out"><LogOut /></a> : <button type="button" onClick={handleSignOut} className="icon-btn" title="Sign out" aria-label="Sign out">
                     <LogOut />
-                </button>
+                </button>}
             </div>
         </aside>
     );

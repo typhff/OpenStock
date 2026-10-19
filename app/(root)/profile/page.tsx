@@ -8,6 +8,7 @@ import { auth, getSession } from "@/lib/better-auth/auth";
 import { getUserWatchlist } from "@/lib/actions/watchlist.actions";
 import { getUserAlerts } from "@/lib/actions/alert.actions";
 import { alertsEnabled } from "@/lib/market-data";
+import { singleUserEnabled } from '@/lib/access-identity';
 
 export const metadata = { title: 'Profile | OpenStock' };
 
@@ -15,6 +16,7 @@ const METHOD_LABELS: Record<string, string> = {
     credential: 'Email and password',
     google: 'Google',
     github: 'GitHub',
+    cloudflare: 'Cloudflare Access',
 };
 
 export default async function ProfilePage() {
@@ -23,7 +25,7 @@ export default async function ProfilePage() {
     const { user } = session;
 
     const [accounts, watchlist, alerts] = await Promise.all([
-        auth.api.listUserAccounts({ headers: await headers() }).catch(() => []),
+        singleUserEnabled() ? Promise.resolve([{ providerId: 'cloudflare' }]) : auth.api.listUserAccounts({ headers: await headers() }).catch(() => []),
         getUserWatchlist(),
         getUserAlerts(),
     ]);

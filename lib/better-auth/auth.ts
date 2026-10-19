@@ -5,6 +5,8 @@ import {nextCookies} from "better-auth/next-js";
 import { headers } from "next/headers";
 import { cache } from "react";
 import { sendPasswordResetEmail } from "@/lib/nodemailer/reset-password";
+import { singleUserEnabled } from '@/lib/access-identity';
+import { getSingleUserSession } from '@/lib/single-user';
 
 
 type MongoDb = Parameters<typeof mongodbAdapter>[0];
@@ -14,6 +16,9 @@ const createAuth = (database: MongoDb) => betterAuth({
         database: mongodbAdapter(database),
        secret: process.env.BETTER_AUTH_SECRET,
         baseURL: process.env.BETTER_AUTH_URL,
+        // Allow explicitly configured local origins alongside the public deployment URL.
+        trustedOrigins: (process.env.BETTER_AUTH_TRUSTED_ORIGINS || '')
+            .split(',').map((origin) => origin.trim()).filter(Boolean),
         // Onboarding answers live on the user so the profile page can show and edit them
         user: {
             additionalFields: {
@@ -25,7 +30,7 @@ const createAuth = (database: MongoDb) => betterAuth({
         },
         emailAndPassword: {
             enabled: true,
-            disableSignUp: false,
+            disableSignUp: singleUserEnabled(),
             requireEmailVerification: false,
             minPasswordLength: 8,
             maxPasswordLength: 128,
@@ -106,7 +111,10 @@ export const auth = {
 };
 
 // One session lookup per request, shared by layouts, pages and actions
-export const getSession = cache(async () => auth.api.getSession({ headers: await headers() }));
+export const getSession = cache(async () => {
+    if (singleUserEnabled()) return getSingleUserSession();
+    return auth.api.getSession({ headers: await headers() });
+});
 
 // Server actions are public endpoints: never trust a userId sent from the client.
 export const requireUserId = async () => {

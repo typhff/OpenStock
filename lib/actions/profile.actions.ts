@@ -2,7 +2,9 @@
 
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
-import { auth } from "@/lib/better-auth/auth";
+import { auth, requireUserId } from "@/lib/better-auth/auth";
+import { accessConfig, singleUserEnabled } from '@/lib/access-identity';
+import { connectToDatabase } from '@/database/mongoose';
 import { INVESTMENT_GOALS, PREFERRED_INDUSTRIES, RISK_TOLERANCE_OPTIONS } from "@/lib/constants";
 
 export type ProfileInput = {
@@ -27,6 +29,17 @@ export async function updateProfile(input: ProfileInput) {
     }
 
     try {
+        if (singleUserEnabled()) {
+            await requireUserId();
+            const mongoose = await connectToDatabase();
+            await mongoose.connection.db!.collection('user').updateOne(
+                { email: accessConfig().email },
+                { $set: { name, country: input.country, investmentGoals: input.investmentGoals,
+                    riskTolerance: input.riskTolerance, preferredIndustry: input.preferredIndustry, updatedAt: new Date() } },
+            );
+            revalidatePath('/', 'layout');
+            return { success: true };
+        }
         await auth.api.updateUser({
             headers: await headers(),
             body: {
@@ -46,6 +59,7 @@ export async function updateProfile(input: ProfileInput) {
 }
 
 export async function changePassword({ currentPassword, newPassword }: { currentPassword: string; newPassword: string }) {
+    if (singleUserEnabled()) return { success: false, error: 'Sign-in is managed by Cloudflare Access.' };
     try {
         await auth.api.changePassword({
             headers: await headers(),

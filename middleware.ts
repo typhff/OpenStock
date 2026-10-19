@@ -1,10 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSessionCookie } from 'better-auth/cookies';
+import { getSessionCookie } from "better-auth/cookies";
+import { singleUserEnabled, verifyAccessIdentity } from '@/lib/access-identity';
+
 import { isPublicPath } from '@/lib/public-paths';
 
 export async function middleware(request: NextRequest) {
-    // Marketing, public ticker and comparison pages, robots.txt and sitemap.xml.
-    // The signed-in app (/stocks, /dashboard, /watchlist, /profile) still requires a session cookie.
+    if (singleUserEnabled()) {
+        try {
+            await verifyAccessIdentity(request.headers.get('cf-access-jwt-assertion'));
+        } catch {
+            return new NextResponse('Access denied. Sign in through Cloudflare Access.', { status: 403 });
+        }
+        if (request.nextUrl.pathname.startsWith('/api/auth') || request.nextUrl.pathname.startsWith('/api/inngest')) {
+            return new NextResponse('Not available in single-user mode.', { status: 404 });
+        }
+        if (['/', '/sign-in', '/sign-up', '/forgot-password', '/reset-password'].includes(request.nextUrl.pathname)) {
+            // Redirect GET navigation only; preserve Server Action POST requests for validation.
+            if (request.method === 'GET') {
+                return NextResponse.redirect(new URL('/dashboard', process.env.BETTER_AUTH_URL || request.url));
+            }
+        }
+        return NextResponse.next();
+    }
+    if (request.nextUrl.pathname.startsWith('/api/') ||
+        ['/sign-in', '/sign-up', '/forgot-password', '/reset-password'].includes(request.nextUrl.pathname)) {
+        return NextResponse.next();
+    }
+    // The marketing site is public
     if (isPublicPath(request.nextUrl.pathname)) return NextResponse.next();
 
     const sessionCookie = getSessionCookie(request);
@@ -19,8 +41,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
     matcher: [
-        // robots.txt and sitemap.xml are excluded so a crawler is never sent to sign-in,
-        // even if the public-path list above is edited later.
-        '/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|sign-in|sign-up|forgot-password|reset-password|assets).*)',
+        '/((?!_next/static|_next/image|favicon.ico|assets).*)',
     ],
 };

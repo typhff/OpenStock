@@ -46,9 +46,9 @@ describe('middleware', () => {
         expect(response.headers.get('location')).toBeNull();
     });
 
-    it('excludes crawler files from the matcher so they cannot be gated later by accident', () => {
-        expect(config.matcher[0]).toContain('robots.txt');
-        expect(config.matcher[0]).toContain('sitemap.xml');
+    it('includes crawler files in middleware so single-user access can protect them', () => {
+        expect(config.matcher[0]).not.toContain('robots.txt');
+        expect(config.matcher[0]).not.toContain('sitemap.xml');
     });
 });
 

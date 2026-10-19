@@ -4,6 +4,7 @@ import AppShell from "@/components/shell/AppShell";
 import DonatePopup from "@/components/DonatePopup";
 import { searchStocks } from "@/lib/actions/finnhub.actions";
 import { getUserWatchlist } from "@/lib/actions/watchlist.actions";
+import { singleUserEnabled } from '@/lib/access-identity';
 
 const Layout = async ({ children }: { children: React.ReactNode }) => {
     const session = await getSession();
@@ -24,6 +25,7 @@ const Layout = async ({ children }: { children: React.ReactNode }) => {
     return (
         <>
             <AppShell
+                singleUser={singleUserEnabled()}
                 user={user}
                 watchlist={watchlist.map(({ symbol, company }: { symbol: string; company: string }) => ({ symbol, company }))}
                 initialStocks={initialStocks}

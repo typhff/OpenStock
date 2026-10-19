@@ -3,6 +3,7 @@
 import { auth } from "@/lib/better-auth/auth";
 import { inngest } from "@/lib/inngest/client";
 import { headers } from "next/headers";
+import { singleUserEnabled } from "@/lib/access-identity";
 import { INVESTMENT_GOALS, PREFERRED_INDUSTRIES, RISK_TOLERANCE_OPTIONS } from "@/lib/constants";
 import countryList from "react-select-country-list";
 import { clientIp, isRateLimited, TOO_MANY_ATTEMPTS } from "@/lib/rate-limit";
@@ -11,6 +12,7 @@ const isOption = (options: readonly { value: string }[], value: unknown) => opti
 const COUNTRY_CODES = new Set(countryList().getValues()); // the same list the sign-up country picker shows
 
 export const signUpWithEmail = async ({ email, password, fullName, country, investmentGoals, riskTolerance, preferredIndustry }: SignUpFormData) => {
+    if (singleUserEnabled()) return { success: false, error: 'Sign-in is managed by Cloudflare Access.' };
     // These fields go into the AI prompt for the welcome email, so only accept the form's own values
     if (typeof fullName !== 'string' || !fullName.trim() || fullName.length > 80
         || typeof country !== 'string' || !COUNTRY_CODES.has(country)
@@ -48,6 +50,7 @@ export const signUpWithEmail = async ({ email, password, fullName, country, inve
 }
 
 export const signInWithEmail = async ({ email, password }: SignInFormData) => {
+    if (singleUserEnabled()) return { success: false, error: 'Sign-in is managed by Cloudflare Access.' };
     // Per IP against credential stuffing, per account against guessing one password from many IPs
     if (await isRateLimited(`sign-in:ip:${await clientIp()}`, 20, 10 * 60)
         || await isRateLimited(`sign-in:email:${String(email).trim().toLowerCase()}`, 10, 10 * 60)) {
@@ -82,6 +85,7 @@ export const signInWithEmail = async ({ email, password }: SignInFormData) => {
 }
 
 export const signInWithSocial = async (provider: 'google' | 'github') => {
+    if (singleUserEnabled()) return { success: false, error: 'Sign-in is managed by Cloudflare Access.' };
     try {
         const { url } = await auth.api.signInSocial({
             body: { provider, callbackURL: '/dashboard', errorCallbackURL: '/sign-in' },
@@ -94,6 +98,7 @@ export const signInWithSocial = async (provider: 'google' | 'github') => {
 }
 
 export const requestPasswordResetEmail =async ({ email }: { email: string }) => {
+    if (singleUserEnabled()) return { success: false, error: 'Sign-in is managed by Cloudflare Access.' };
     if (!process.env.NODEMAILER_EMAIL || !process.env.NODEMAILER_PASSWORD) {
         return { success: false, error: 'Password reset email is not configured.' }
     }
@@ -133,6 +138,7 @@ export const requestPasswordResetEmail =async ({ email }: { email: string }) => 
 export const resetPasswordWithToken = async (
     { token, newPassword }: { token: string; newPassword: string }
 ) => {
+    if (singleUserEnabled()) return { success: false, error: 'Sign-in is managed by Cloudflare Access.' };
     try {
         await auth.api.resetPassword({
             body: {
@@ -149,6 +155,7 @@ export const resetPasswordWithToken = async (
 }
 
 export const signOut = async () => {
+    if (singleUserEnabled()) return { success: false, error: 'Sign-in is managed by Cloudflare Access.' };
     try {
         await auth.api.signOut({ headers: await headers() });
     } catch (e) {
