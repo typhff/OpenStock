@@ -6,7 +6,7 @@ import PriceFlash from "@/components/PriceFlash";
 import { useLiveQuotes, type LiveQuote } from "@/hooks/useLiveQuotes";
 import { formatPrice } from "@/lib/utils";
 
-const StockLivePrice = ({ symbol, initial, currency }: { symbol: string; initial: LiveQuote | null; currency: string }) => {
+const StockLivePrice = ({ symbol, initial, currency, hyperliquid = false }: { symbol: string; initial: LiveQuote | null; currency: string; hyperliquid?: boolean }) => {
     const live = useLiveQuotes([symbol]);
     const quote = live[symbol] ?? initial;
 
@@ -22,7 +22,7 @@ const StockLivePrice = ({ symbol, initial, currency }: { symbol: string; initial
                         {quote?.d != null ? `${quote.d > 0 ? '+' : ''}${quote.d.toFixed(2)}` : ''}
                     </span>
                 </span>
-                <DataFreshness tradeTime={quote?.t} />
+                {hyperliquid ? <span className="inline-flex items-center gap-1.5 text-[12px] text-faint"><span className="live-dot" /> Hyperliquid · polls every 15s</span> : <DataFreshness tradeTime={quote?.t} />}
             </div>
         </div>
     );

@@ -6,6 +6,7 @@ import { cache } from 'react';
 import { QUOTE_TTL_SECONDS } from '@/lib/market-data';
 import { hasFinnhubQuotes } from '@/lib/markets';
 import { getSession } from '@/lib/better-auth/auth';
+import { getHyperliquidMarkets, isHyperliquidSymbol } from '@/lib/hyperliquid';
 
 const FINNHUB_BASE_URL = 'https://finnhub.io/api/v1';
 // Key pool: each free key has its own 60 req/min, so N keys = N x the quota. Rotated per request.
@@ -184,9 +185,17 @@ export async function getQuote(symbol: string, revalidateSeconds = 0) {
 
 // Shared, short-lived quotes for anything shown live on screen (pages and /api/quotes)
 export async function getLiveQuotes(symbols: string[]) {
-    // Symbols the free plan can't price are skipped instead of spending a request on a 403
+    const markets = symbols.some(isHyperliquidSymbol) ? await getHyperliquidMarkets().catch(() => []) : [];
+    const bySymbol = new Map(markets.map((market) => [market.symbol, market]));
     const quotes = await Promise.all(symbols.map((s) => (hasFinnhubQuotes(s) ? getQuote(s, LIVE_QUOTE_TTL) : null)));
-    return Object.fromEntries(symbols.map((s, i) => [s, quotes[i]?.c ? quotes[i] : null]));
+    return Object.fromEntries(symbols.map((s, i) => {
+        const market = bySymbol.get(s.toUpperCase());
+        const quote = market ? {
+            c: market.price, d: market.change, dp: market.changePercent,
+            pc: market.previousPrice, t: Math.floor(Date.now() / 1000),
+        } : quotes[i];
+        return [s, quote?.c ? quote : null];
+    }));
 }
 
 export async function getCompanyProfile(symbol: string) {
@@ -224,8 +233,18 @@ export async function getStockMetrics(symbol: string): Promise<number | null> {
 export async function getWatchlistData(symbols: string[]) {
     if (!symbols || symbols.length === 0) return [];
 
+    const hyperliquid = symbols.some(isHyperliquidSymbol)
+        ? await getHyperliquidMarkets().catch(() => []) : [];
+    const markets = new Map(hyperliquid.map((market) => [market.symbol, market]));
+
     // Fetch quotes and profiles in parallel
     const promises = symbols.map(async (sym) => {
+        const market = markets.get(sym.toUpperCase());
+        if (market) return {
+            symbol: sym, price: market.price, change: market.change, changePercent: market.changePercent,
+            currency: 'USD', name: `${market.symbol} perpetual`, logo: undefined,
+            marketCap: undefined, peRatio: 0,
+        };
         const covered = hasFinnhubQuotes(sym);
         const [quote, profile] = covered
             ? await Promise.all([getQuote(sym, LIVE_QUOTE_TTL), getCompanyProfile(sym)])
@@ -325,13 +344,22 @@ export async function getNews(symbols?: string[]): Promise<MarketNewsArticle[]> 
 
 export const searchStocks = cache(async (query?: string): Promise<StockWithWatchlistStatus[]> => {
     try {
-        if (FINNHUB_KEYS.length === 0) {
-            // If no token, log and return empty to avoid throwing per requirements
-            console.error('Error in stock search:', new Error('FINNHUB API key is not configured'));
-            return [];
-        }
-
         const trimmed = typeof query === 'string' ? query.trim() : '';
+        if (trimmed && !(await getSession())?.user) return [];
+        const hyperliquid = trimmed
+            ? (await getHyperliquidMarkets().catch(() => []))
+                .filter((m) => m.symbol.includes(trimmed.toUpperCase()) || m.coin.toUpperCase().includes(trimmed.toUpperCase()))
+                .sort((a, b) => b.volume24h - a.volume24h)
+                .slice(0, 8)
+            : ['HL:BTC', 'HL:ETH', 'XYZ:NVDA', 'XYZ:TSLA'].map((symbol) => ({
+                symbol, coin: symbol.split(':')[1], dex: symbol.startsWith('XYZ:') ? 'xyz' as const : 'hl' as const,
+                volume24h: 0,
+            }));
+        const hyperliquidResults: StockWithWatchlistStatus[] = hyperliquid.map((m) => ({
+            symbol: m.symbol, name: `${m.coin} perpetual`, exchange: m.dex === 'xyz' ? 'trade[XYZ] / Hyperliquid' : 'Hyperliquid',
+            type: 'Perpetual', isInWatchlist: false,
+        }));
+        if (FINNHUB_KEYS.length === 0 || /^(HL|XYZ):/i.test(trimmed)) return hyperliquidResults;
 
         let results: SearchStockCandidate[] = [];
 
@@ -346,9 +374,8 @@ export const searchStocks = cache(async (query?: string): Promise<StockWithWatch
             }));
         } else {
             // A public server action: only signed-in users may spend Finnhub quota on searches
-            if (!(await getSession())?.user) return [];
             const url = `${FINNHUB_BASE_URL}/search?q=${encodeURIComponent(trimmed)}`;
-            const data = await fetchJSON<FinnhubSearchResponse>(url, 1800);
+            const data = await fetchJSON<FinnhubSearchResponse>(url, 1800).catch(() => null);
             results = Array.isArray(data?.result) ? data.result : [];
         }
 
@@ -370,7 +397,9 @@ export const searchStocks = cache(async (query?: string): Promise<StockWithWatch
             })
             .slice(0, 15);
 
-        return mapped;
+        return trimmed
+            ? [...mapped.slice(0, 8), ...hyperliquidResults].slice(0, 15)
+            : [...mapped.slice(0, 6), ...hyperliquidResults];
     } catch (err) {
         console.error('Error in stock search:', err);
         return [];

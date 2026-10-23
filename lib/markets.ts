@@ -7,7 +7,7 @@
 
 import { isInternationalSymbol } from "@/lib/utils";
 
-export type MarketId = 'us' | 'in' | 'de' | 'ca' | 'au' | 'crypto' | 'fx';
+export type MarketId = 'us' | 'in' | 'de' | 'ca' | 'au' | 'crypto' | 'fx' | 'hyperliquid';
 
 type Hours = { open: number; close: number }; // minutes of the local day
 
@@ -130,6 +130,10 @@ export const MARKETS: Market[] = [
             { title: 'Commodity FX', symbols: [['FX:AUDUSD', 'AUD / USD'], ['FX:USDCAD', 'USD / CAD'], ['FX:NZDUSD', 'NZD / USD']] },
         ],
         news: 'forex',
+    },
+    {
+        id: 'hyperliquid', name: 'Hyperliquid', short: 'HL', timeZone: 'UTC', hours: '24/7', feed: 'Live',
+        pulse: [], groups: [], news: 'crypto',
     },
 ];
 

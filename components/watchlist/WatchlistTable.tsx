@@ -11,6 +11,7 @@ import { useLiveQuotes } from "@/hooks/useLiveQuotes";
 import { SearchButton } from "@/components/SearchCommand";
 import { formatNumber, formatPrice } from "@/lib/utils";
 import { hasFinnhubQuotes } from "@/lib/markets";
+import { isHyperliquidSymbol } from '@/lib/hyperliquid';
 import type { getWatchlistData } from "@/lib/actions/finnhub.actions";
 
 type Row = Awaited<ReturnType<typeof getWatchlistData>>[number];
@@ -81,14 +82,14 @@ export default function WatchlistTable({ initialRows }: { initialRows: Row[] }) 
                             <td className="is-num text-muted-foreground">{row.marketCap ? formatNumber(row.marketCap) : '—'}</td>
                             <td>
                                 <div className="flex items-center justify-end gap-1">
-                                    {hasFinnhubQuotes(row.symbol) ? (
+                                    {hasFinnhubQuotes(row.symbol) || isHyperliquidSymbol(row.symbol) ? (
                                         <CreateAlertModal symbol={row.symbol} currentPrice={row.price} currency={row.currency}>
                                             <button type="button" className="icon-btn" title={`Set a price alert for ${row.symbol}`} aria-label={`Set a price alert for ${row.symbol}`}>
                                                 <Bell />
                                             </button>
                                         </CreateAlertModal>
                                     ) : (
-                                        <span className="icon-btn opacity-40" title="Alerts are available for US stocks and crypto"><Bell /></span>
+                                        <span className="icon-btn opacity-40" title="Alerts are available for US stocks, crypto and Hyperliquid"><Bell /></span>
                                     )}
                                     <WatchlistButton
                                         symbol={row.symbol}

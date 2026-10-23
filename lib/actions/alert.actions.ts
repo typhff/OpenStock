@@ -6,12 +6,13 @@ import { revalidatePath } from 'next/cache';
 import { requireUserId } from '@/lib/better-auth/auth';
 import { hasFinnhubQuotes } from '@/lib/markets';
 import { alertsEnabled } from '@/lib/market-data';
+import { getHyperliquidMarket, isHyperliquidSymbol } from '@/lib/hyperliquid';
 
-// A ticker (AAPL, BRK.B) or a Binance pair. Anything else, including markup, is rejected:
+// A ticker, Binance pair, or Hyperliquid perp. Anything else, including markup, is rejected:
 // the symbol ends up in alert emails.
-const SYMBOL_PATTERN = /^(BINANCE:[A-Z0-9]{2,20}|[A-Z0-9][A-Z0-9.-]{0,14})$/;
+const SYMBOL_PATTERN = /^(BINANCE:[A-Z0-9]{2,20}|(?:HL|XYZ):[A-Z0-9][A-Z0-9._-]{0,19}|[A-Z0-9][A-Z0-9.-]{0,14})$/;
 const CONDITIONS = ['ABOVE', 'BELOW'];
-// The checker re-prices every active alert's symbol through Finnhub every 5 minutes
+// The checker re-prices every active alert through its matching source every 5 minutes.
 const MAX_ACTIVE_ALERTS = 50;
 
 // Create a new alert. Server actions take untrusted input, so only validated fields are stored.
@@ -28,9 +29,10 @@ export async function createAlert(params: {
 
     if (!SYMBOL_PATTERN.test(symbol)) throw new Error('Invalid symbol');
     if (!CONDITIONS.includes(condition)) throw new Error('Invalid condition');
-    // The alert checker prices symbols through Finnhub, whose free plan covers US stocks and crypto
-    if (!hasFinnhubQuotes(symbol)) throw new Error('Alerts are available for US stocks and crypto');
+    // The alert checker prices Finnhub-supported symbols and Hyperliquid perpetuals.
+    if (!hasFinnhubQuotes(symbol) && !isHyperliquidSymbol(symbol)) throw new Error('Alerts are available for US stocks and crypto, including Hyperliquid');
     if (!Number.isFinite(targetPrice) || targetPrice <= 0) throw new Error('Target price must be a positive number');
+    if (isHyperliquidSymbol(symbol) && !(await getHyperliquidMarket(symbol))) throw new Error('Hyperliquid contract not found');
 
     await connectToDatabase();
     if (await Alert.countDocuments({ userId, active: true }) >= MAX_ACTIVE_ALERTS) {

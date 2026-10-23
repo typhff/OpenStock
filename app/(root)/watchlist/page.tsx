@@ -10,6 +10,7 @@ import NewsList from '@/components/watchlist/NewsList';
 import Panel from '@/components/Panel';
 import DataFreshness from '@/components/DataFreshness';
 import { SearchButton } from '@/components/SearchCommand';
+import { isHyperliquidSymbol } from '@/lib/hyperliquid';
 
 const RowsSkeleton = ({ rows = 4 }: { rows?: number }) => (
     <div className="row-list" aria-busy="true">
@@ -28,7 +29,7 @@ async function Symbols({ symbols }: { symbols: string[] }) {
 }
 
 async function News({ symbols }: { symbols: string[] }) {
-    return <NewsList news={await getNews(symbols).catch(() => [] as MarketNewsArticle[])} />;
+    return <NewsList news={await getNews(symbols.filter((s) => !isHyperliquidSymbol(s))).catch(() => [] as MarketNewsArticle[])} />;
 }
 
 // DB reads render first; everything from Finnhub streams in behind skeletons.
@@ -51,7 +52,7 @@ export default async function WatchlistPage() {
 
             <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(300px,360px)]">
                 <div className="flex min-w-0 flex-col gap-3">
-                    <Panel title="Symbols" sub="Click a row for charts, technicals and financials">
+                    <Panel title="Symbols" sub="Click a row for its chart and market details">
                         <Suspense fallback={<RowsSkeleton rows={Math.max(1, Math.min(symbols.length, 6))} />}>
                             <Symbols symbols={symbols} />
                         </Suspense>

@@ -35,7 +35,7 @@ export default function CreateAlertModal({ symbol, currentPrice, currency = 'USD
 
     const onOpenChange = (next: boolean) => {
         setOpen(next);
-        if (next) setTargetPrice(hasPrice ? currentPrice!.toFixed(2) : '');
+        if (next) setTargetPrice(hasPrice ? (currentPrice! < 1 ? String(currentPrice) : currentPrice!.toFixed(2)) : '');
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -94,8 +94,8 @@ export default function CreateAlertModal({ symbol, currentPrice, currency = 'USD
                                     <input
                                         type="number"
                                         inputMode="decimal"
-                                        step="0.01"
-                                        min="0.01"
+                                        step="any"
+                                        min="0"
                                         required
                                         autoFocus
                                         value={targetPrice}

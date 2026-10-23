@@ -225,11 +225,20 @@ export const checkStockAlerts = inngest.createFunction(
         // Step 3: Fetch prices
         const prices = await step.run('fetch-prices', async () => {
             const { getQuote } = await import("@/lib/actions/finnhub.actions");
+            const { getHyperliquidMarkets, isHyperliquidSymbol } = await import("@/lib/hyperliquid");
             const priceMap: Record<string, number> = {};
+            const hyperliquid = symbols.some((s) => isHyperliquidSymbol(String(s)))
+                ? await getHyperliquidMarkets().catch(() => []) : [];
+            const markets = new Map(hyperliquid.map((m) => [m.symbol, m.price]));
 
             // Process in chunks to be safe
             for (const sym of symbols) {
                 try {
+                    if (isHyperliquidSymbol(String(sym))) {
+                        const price = markets.get(String(sym));
+                        if (price) priceMap[String(sym)] = price;
+                        continue;
+                    }
                     const quote = await getQuote(sym as string);
                     if (quote && quote.c) {
                         priceMap[sym as string] = quote.c;

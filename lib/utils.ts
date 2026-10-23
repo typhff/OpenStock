@@ -113,6 +113,7 @@ export const formatPrice = (price: number, currency = 'USD') => {
         style: 'currency',
         currency,
         minimumFractionDigits: 2,
+        maximumFractionDigits: price > 0 && price < 1 ? 8 : 2,
     }).format(price);
 };
 

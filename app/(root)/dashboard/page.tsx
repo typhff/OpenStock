@@ -14,6 +14,7 @@ import {
 } from "@/lib/constants";
 import { MARKETS, MARKET_COOKIE, getMarket, isMarketOpen, marketForCountry } from "@/lib/markets";
 import { getSession } from "@/lib/better-auth/auth";
+import HyperliquidDashboard from '@/components/hyperliquid/HyperliquidDashboard';
 
 const scriptUrl = `https://s3.tradingview.com/external-embedding/embed-widget-`;
 
@@ -30,6 +31,12 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         : market.heatmap === 'crypto'
             ? { script: 'crypto-coins-heatmap.js', config: CRYPTO_HEATMAP_CONFIG, title: 'Crypto heatmap' }
             : null;
+
+    if (market.id === 'hyperliquid') return <>
+        <header className="page-head"><div><h1 className="page-title">Markets</h1><p className="page-sub">Hyperliquid · live public market data · perpetual contracts</p></div></header>
+        <MarketSwitcher active={market.id} openIds={MARKETS.filter((m) => isMarketOpen(m)).map((m) => m.id)} />
+        <Suspense fallback={<Panel title="Loading Hyperliquid markets"><div className="h-40 animate-pulse bg-hover/30" /></Panel>}><HyperliquidDashboard /></Suspense>
+    </>;
 
     return (
         <>

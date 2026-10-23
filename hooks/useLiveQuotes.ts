@@ -2,17 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { isRealtime } from "@/lib/market-data";
+import { isHyperliquidSymbol } from '@/lib/hyperliquid';
 
 export type LiveQuote = { c?: number; d?: number; dp?: number; h?: number; l?: number; o?: number; pc?: number; t?: number };
 
-// Realtime mode only: polls the shared /api/quotes cache while the tab is visible.
-// In cached mode prices come from the server render and refresh hourly for everyone.
+// Polls the shared /api/quotes cache while visible. In cached mode, only
+// Hyperliquid perps are polled; Finnhub quotes remain server-rendered hourly.
 export function useLiveQuotes(symbols: string[], intervalMs = 15_000) {
     const [quotes, setQuotes] = useState<Record<string, LiveQuote | null>>({});
-    const key = symbols.join(",");
+    const key = (isRealtime ? symbols : symbols.filter(isHyperliquidSymbol)).join(",");
 
     useEffect(() => {
-        if (!key || !isRealtime) return;
+        if (!key) return;
         let cancelled = false;
 
         const load = async () => {

@@ -13,6 +13,8 @@ import {
 import { getStockSentimentInsights } from '@/lib/actions/adanos.actions';
 import { getStockMetrics } from '@/lib/actions/finnhub.actions';
 import { formatSymbolForTradingView, isChartEmbeddable, tradingViewSymbolUrl } from '@/lib/utils';
+import { isHyperliquidSymbol } from '@/lib/hyperliquid';
+import HyperliquidDetails from '@/components/hyperliquid/HyperliquidDetails';
 
 const scriptUrl = `https://s3.tradingview.com/external-embedding/embed-widget-`;
 
@@ -41,6 +43,7 @@ async function DividendYield({ symbol }: { symbol: string }) {
 export default async function StockDetails({ params }: StockDetailsPageProps) {
     const { symbol: rawSymbol } = await params;
     const symbol = decodeURIComponent(rawSymbol).toUpperCase();
+    if (isHyperliquidSymbol(symbol)) return <HyperliquidDetails symbol={symbol} />;
     const tvSymbol = formatSymbolForTradingView(symbol);
 
     return (

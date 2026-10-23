@@ -102,7 +102,9 @@
 
 ## ⏱️ How fresh is the data <a name="data-freshness"></a>
 
-Charts always stream live from TradingView. Quotes, watchlist prices and alerts come from Finnhub:
+Stock charts use TradingView; stock quotes and alerts use Finnhub. Hyperliquid native and trade[XYZ] perpetuals use Hyperliquid's public Info API for market discovery, mark prices and candles, with no API key. Open `/dashboard?market=hyperliquid`, search for `HL:BTC` or `XYZ:NVDA`, or add either to a watchlist. The Hyperliquid chart defaults to 5-minute candles and saves the selected interval per contract in this browser.
+
+Finnhub data freshness:
 
 | | Quotes | Price alerts | Cost |
 |---|---|---|---|
@@ -116,7 +118,7 @@ Charts always stream live from TradingView. Quotes, watchlist prices and alerts 
 |---|---|
 | App | Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS v4, shadcn/ui and Radix |
 | Accounts and data | Better Auth, MongoDB with Mongoose |
-| Market data | Finnhub, TradingView widgets, Adanos (sentiment) |
+| Market data | Finnhub, TradingView widgets, Hyperliquid Info API, Adanos (sentiment) |
 | Background jobs | Inngest |
 | Email | Nodemailer (Gmail), Kit for the newsletter |
 | AI | Gemini, MiniMax or Siray |
@@ -245,6 +247,7 @@ __tests__/        Vitest tests
 
 - **Finnhub**: search, quotes, company profiles and news. Responses are cached and shared (for an hour, or 15 seconds in realtime mode), with timeouts and a key pool, so a slow upstream never hangs a page.
 - **TradingView**: the chart, heatmap, financials, technicals and profile widgets.
+- **Hyperliquid**: native and trade[XYZ] perpetual markets, mark prices, funding, open interest and candles through its public Info API. No API key is needed.
 - **Adanos** (optional): the sentiment card.
 - **Better Auth with MongoDB**: accounts and sessions. Pages and server actions check the session on the server; the middleware only redirects signed-out visitors.
 - **Inngest** runs the background jobs:
@@ -259,10 +262,11 @@ __tests__/        Vitest tests
 
 ## 🌍 Market support <a name="market-support"></a>
 
-| Market | Charts (TradingView embeds) | Quotes, watchlist prices, alerts (Finnhub free) |
+| Market | Charts | Quotes, watchlist prices, alerts |
 |---|---|---|
 | 🇺🇸 United States | Live | Yes |
 | Crypto (Binance pairs) | Live | Yes |
+| Hyperliquid native and trade[XYZ] perpetuals | Live candles from Hyperliquid | Yes, from Hyperliquid |
 | Forex | Live | No |
 | 🇨🇦 Canada, 🇦🇺 Australia | Delayed | No |
 | 🇮🇳 India (BSE; `.NS` symbols chart on BSE), 🇩🇪 Germany | End of day | No |
